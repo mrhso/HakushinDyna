@@ -1,13 +1,13 @@
-From 47e601b8093fad871b32c11d03ed667c66023671 Mon Sep 17 00:00:00 2001
+From c0a884cb1b3186ca630afbe5f0e993a3236ec7e7 Mon Sep 17 00:00:00 2001
 From: mrhso <liu.songquan@live.cn>
-Date: Mon, 26 Jul 2021 08:05:50 +0800
+Date: Mon, 26 Jul 2021 15:27:43 +0800
 Subject: [PATCH] HakushinDyna
 
 ---
  fontforge/views.h        |   3 +
- fontforgeexe/cvgridfit.c | 289 +++++++++++++++++++++++++++++++++++++++
+ fontforgeexe/cvgridfit.c | 288 +++++++++++++++++++++++++++++++++++++++
  fontforgeexe/fontview.c  |  13 ++
- 3 files changed, 305 insertions(+)
+ 3 files changed, 304 insertions(+)
 
 diff --git a/fontforge/views.h b/fontforge/views.h
 index fc7ef3e13..efe086554 100644
@@ -31,10 +31,10 @@ index fc7ef3e13..efe086554 100644
  extern void SCReGridFit(SplineChar *sc,int layer);
  
 diff --git a/fontforgeexe/cvgridfit.c b/fontforgeexe/cvgridfit.c
-index 564c221e9..db17dccf5 100644
+index 564c221e9..5ef84572d 100644
 --- a/fontforgeexe/cvgridfit.c
 +++ b/fontforgeexe/cvgridfit.c
-@@ -88,6 +88,49 @@ return;
+@@ -88,6 +88,48 @@ return;
  	    _("The points have been changed. This may mean that the truetype instructions now refer to the wrong points and they may cause unexpected results."));
  }
  
@@ -67,11 +67,10 @@ index 564c221e9..db17dccf5 100644
 +        single_glyph_context = _FreeTypeFontContext(sf,fv->sf->glyphs[gid],NULL,ly_fore,
 +            sf->layers[ly_fore].order2?ff_ttf:ff_otf,0,NULL);
 +        if ( single_glyph_context!=NULL ) {
-+            fv->sf->glyphs[gid]->layers[ly_fore].splines = SplinePointListCopy(FreeType_GridFitChar(single_glyph_context,fv->sf->glyphs[gid]->orig_pos,
++            fv->sf->glyphs[gid]->layers[ly_back].splines = SplinePointListCopy(FreeType_GridFitChar(single_glyph_context,fv->sf->glyphs[gid]->orig_pos,
 +                ft_pointsizey, ft_pointsizex, ft_dpi, &ft_gridfitwidth,
 +                fv->sf->glyphs[gid], ft_depth, true ));
-+            fv->sf->glyphs[gid]->layers[ly_fore].refs = NULL;
-+            SCCharChangedUpdate(fv->sf->glyphs[gid],ly_fore);
++            SCCharChangedUpdate(fv->sf->glyphs[gid],ly_back);
 +            if ( !ff_progress_next())
 +    break;
 +        }
@@ -84,7 +83,7 @@ index 564c221e9..db17dccf5 100644
  void SCReGridFit(SplineChar *sc,int layer) {
      CharView *cv;
  
-@@ -114,6 +157,13 @@ typedef struct ftsizedata {
+@@ -114,6 +156,13 @@ typedef struct ftsizedata {
      GWindow gw;
  } FtSizeData;
  
@@ -98,7 +97,7 @@ index 564c221e9..db17dccf5 100644
  static int FtPpem_OK(GGadget *g, GEvent *e) {
      if ( e->type==et_controlevent && e->u.control.subtype == et_buttonactivate ) {
  	FtSizeData *fsd = GDrawGetUserData(GGadgetGetWindow(g));
-@@ -158,6 +208,39 @@ return(true);
+@@ -158,6 +207,39 @@ return(true);
  return( true );
  }
  
@@ -138,7 +137,7 @@ index 564c221e9..db17dccf5 100644
  static int FtPpem_Cancel(GGadget *g, GEvent *e) {
      if ( e->type==et_controlevent && e->u.control.subtype == et_buttonactivate ) {
  	FtSizeData *fsd = GDrawGetUserData(GGadgetGetWindow(g));
-@@ -398,6 +481,212 @@ void CVFtPpemDlg(CharView *cv,int debug) {
+@@ -398,6 +480,212 @@ void CVFtPpemDlg(CharView *cv,int debug) {
      boxes[0].creator = GHVGroupCreate;
  
  
