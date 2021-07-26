@@ -1,0 +1,401 @@
+From 47e601b8093fad871b32c11d03ed667c66023671 Mon Sep 17 00:00:00 2001
+From: mrhso <liu.songquan@live.cn>
+Date: Mon, 26 Jul 2021 08:05:50 +0800
+Subject: [PATCH] HakushinDyna
+
+---
+ fontforge/views.h        |   3 +
+ fontforgeexe/cvgridfit.c | 289 +++++++++++++++++++++++++++++++++++++++
+ fontforgeexe/fontview.c  |  13 ++
+ 3 files changed, 305 insertions(+)
+
+diff --git a/fontforge/views.h b/fontforge/views.h
+index fc7ef3e13..efe086554 100644
+--- a/fontforge/views.h
++++ b/fontforge/views.h
+@@ -476,6 +476,8 @@ typedef struct fontview {
+     struct qg_data *qg;
+     GPid pid_webfontserver;
+     bool script_unsaved; // Whether or not there's an unsaved script in script dialog
++    int16 ft_dpi, ft_ppemy, ft_ppemx, ft_depth;
++    real ft_pointsizey, ft_pointsizex;
+ } FontView;
+ 
+ typedef struct findsel {
+@@ -1163,6 +1165,7 @@ extern void CVGridFitChar(CharView *cv);
+  */
+ extern void CVGridHandlePossibleFitChar(CharView *cv);
+ extern void CVFtPpemDlg(CharView *cv,int debug);
++extern void FVFtPpemDlg(FontView *fv,int debug);
+ extern void SCDeGridFit(SplineChar *sc);
+ extern void SCReGridFit(SplineChar *sc,int layer);
+ 
+diff --git a/fontforgeexe/cvgridfit.c b/fontforgeexe/cvgridfit.c
+index 564c221e9..db17dccf5 100644
+--- a/fontforgeexe/cvgridfit.c
++++ b/fontforgeexe/cvgridfit.c
+@@ -88,6 +88,49 @@ return;
+ 	    _("The points have been changed. This may mean that the truetype instructions now refer to the wrong points and they may cause unexpected results."));
+ }
+ 
++void FVGridFitChar(FontViewBase *fv, real ft_pointsizey, real ft_pointsizex, int16 ft_dpi, int16 ft_depth) {
++    int i,cnt,gid;
++    void *single_glyph_context;
++    SplineFont *sf;
++    uint16 ft_gridfitwidth;
++
++    for ( i=cnt=0; i<fv->map->enccount; ++i ) {
++	if ( fv->selected[i] && (gid=fv->map->map[i])!=-1 &&
++		fv->sf->glyphs[gid]!=NULL ) {
++        /*sf = fv->sf->glyphs[gid]->parent;
++        single_glyph_context = _FreeTypeFontContext(sf,fv->sf->glyphs[gid],NULL,ly_fore,
++            sf->layers[ly_fore].order2?ff_ttf:ff_otf,0,NULL);
++        if ( single_glyph_context!=NULL )*/
++            ++cnt;
++        //FreeTypeFreeContext(single_glyph_context);
++    }
++    }
++
++    ff_progress_start_indicator(10,_("Fitting..."),_("Fitting..."),0,cnt,1);
++
++    SFUntickAll(fv->sf);
++    for ( i=cnt=0; i<fv->map->enccount; ++i ) {
++	if ( fv->selected[i] && (gid=fv->map->map[i])!=-1 &&
++		fv->sf->glyphs[gid]!=NULL &&
++		!fv->sf->glyphs[gid]->ticked ) {
++        sf = fv->sf->glyphs[gid]->parent;
++        single_glyph_context = _FreeTypeFontContext(sf,fv->sf->glyphs[gid],NULL,ly_fore,
++            sf->layers[ly_fore].order2?ff_ttf:ff_otf,0,NULL);
++        if ( single_glyph_context!=NULL ) {
++            fv->sf->glyphs[gid]->layers[ly_fore].splines = SplinePointListCopy(FreeType_GridFitChar(single_glyph_context,fv->sf->glyphs[gid]->orig_pos,
++                ft_pointsizey, ft_pointsizex, ft_dpi, &ft_gridfitwidth,
++                fv->sf->glyphs[gid], ft_depth, true ));
++            fv->sf->glyphs[gid]->layers[ly_fore].refs = NULL;
++            SCCharChangedUpdate(fv->sf->glyphs[gid],ly_fore);
++            if ( !ff_progress_next())
++    break;
++        }
++        FreeTypeFreeContext(single_glyph_context);
++	}
++    }
++    ff_progress_end_indicator();
++}
++
+ void SCReGridFit(SplineChar *sc,int layer) {
+     CharView *cv;
+ 
+@@ -114,6 +157,13 @@ typedef struct ftsizedata {
+     GWindow gw;
+ } FtSizeData;
+ 
++typedef struct fvftsizedata {
++    unsigned int done: 1;
++    unsigned int debug: 1;
++    FontView *fv;
++    GWindow gw;
++} FVFtSizeData;
++
+ static int FtPpem_OK(GGadget *g, GEvent *e) {
+     if ( e->type==et_controlevent && e->u.control.subtype == et_buttonactivate ) {
+ 	FtSizeData *fsd = GDrawGetUserData(GGadgetGetWindow(g));
+@@ -158,6 +208,39 @@ return(true);
+ return( true );
+ }
+ 
++static int FVFtPpem_OK(GGadget *g, GEvent *e) {
++    if ( e->type==et_controlevent && e->u.control.subtype == et_buttonactivate ) {
++	FVFtSizeData *fsd = GDrawGetUserData(GGadgetGetWindow(g));
++	int _dpi, _depth;
++	real ptsize, ptsizex;
++	int err = 0;
++	FontView *fv = fsd->fv;
++
++	ptsize = GetReal8(fsd->gw,CID_PointSize,_("Pointsize Y"),&err);
++	if ( GGadgetIsChecked(GWidgetGetControl(fsd->gw,CID_SameAs)) )
++	    ptsizex = ptsize;
++	else
++	    ptsizex = GetReal8(fsd->gw,CID_PointSizeX,_("Pointsize X"),&err);
++	_dpi = GetInt8(fsd->gw,CID_DPI,_("DPI"),&err);
++	_depth = GGadgetIsChecked(GWidgetGetControl(fsd->gw,CID_BW)) ? 1 : 8;
++	if ( err )
++return(true);
++
++	fv->ft_pointsizey = ptsize; fv->ft_dpi = _dpi; fv->ft_depth = _depth;
++	fv->ft_pointsizex = ptsizex;
++	fv->ft_ppemy = rint(fv->ft_pointsizey*fv->ft_dpi/72.0);
++	fv->ft_ppemx = rint(fv->ft_pointsizex*fv->ft_dpi/72.0);
++
++	gridfit_dpi = _dpi; gridfit_pointsizey = ptsize; gridfit_depth = _depth;
++	gridfit_pointsizex = ptsizex; gridfit_x_sameas_y = GGadgetIsChecked(GWidgetGetControl(fsd->gw,CID_SameAs));
++	SavePrefs(true);
++
++	FVGridFitChar(&fv->b, fv->ft_pointsizey, fv->ft_pointsizex, fv->ft_dpi, fv->ft_depth);
++ 	fsd->done = true;
++    }
++return( true );
++}
++
+ static int FtPpem_Cancel(GGadget *g, GEvent *e) {
+     if ( e->type==et_controlevent && e->u.control.subtype == et_buttonactivate ) {
+ 	FtSizeData *fsd = GDrawGetUserData(GGadgetGetWindow(g));
+@@ -398,6 +481,212 @@ void CVFtPpemDlg(CharView *cv,int debug) {
+     boxes[0].creator = GHVGroupCreate;
+ 
+ 
++    GGadgetsCreate(gw,boxes);
++    GHVBoxFitWindow(boxes[0].ret);
++
++    GWidgetIndicateFocusGadget(GWidgetGetControl(gw,CID_PointSize));
++    GTextFieldSelect(GWidgetGetControl(gw,CID_PointSize),0,-1);
++
++    GDrawSetVisible(gw,true);
++    while ( !fsd.done )
++	GDrawProcessOneEvent(NULL);
++    GDrawDestroyWindow(gw);
++}
++
++void FVFtPpemDlg(FontView *fv,int debug) {
++    GRect pos;
++    GWindow gw;
++    GWindowAttrs wattrs;
++    GGadgetCreateData gcd[16], boxes[8];
++    GTextInfo label[16];
++    FVFtSizeData fsd;
++    char buffer[20], buffer2[20], buffer3[20];
++    GGadgetCreateData *varray[7][4], *barray[9], *harray1[3], *harray2[3], *harray3[3];
++    int k,r;
++
++    memset(&fsd,0,sizeof(fsd));
++    fsd.fv = fv;
++    fsd.debug = debug;
++
++    memset(&wattrs,0,sizeof(wattrs));
++    wattrs.mask = wam_events|wam_cursor|wam_utf8_wtitle|wam_undercursor|wam_isdlg|wam_restrict;
++    wattrs.event_masks = ~(1<<et_charup);
++    wattrs.restrict_input_to_me = 1;
++    wattrs.undercursor = 1;
++    wattrs.cursor = ct_pointer;
++    wattrs.utf8_window_title = _("Grid Fit Parameters");
++    wattrs.is_dlg = true;
++    pos.x = pos.y = 0;
++    pos.width = GGadgetScale(GDrawPointsToPixels(NULL,190));
++    pos.height = GDrawPointsToPixels(NULL,106);
++    fsd.gw = gw = GDrawCreateTopWindow(NULL,&pos,fsd_e_h,&fsd,&wattrs);
++
++    memset(&label,0,sizeof(label));
++    memset(&gcd,0,sizeof(gcd));
++    memset(&boxes,0,sizeof(boxes));
++
++    k=r=0;
++    label[k].text = (unichar_t *) _("Debug _fpgm/prep");
++    label[k].text_is_1byte = true;
++    label[k].text_in_resource = true;
++    gcd[k].gd.label = &label[k];
++    gcd[k].gd.pos.x = 80; gcd[k].gd.pos.y = 4; 
++    gcd[k].gd.flags = debug ? (gg_enabled|gg_visible) : 0;
++    if ( last_fpgm )
++	gcd[k].gd.flags |= gg_cb_on;
++    gcd[k].gd.cid = CID_Debugfpgm;
++    gcd[k++].creator = GCheckBoxCreate;
++    varray[r][0] = &gcd[k-1]; varray[r][1] = GCD_ColSpan; varray[r][2] = GCD_ColSpan; varray[r++][3] = NULL;
++
++    label[k].text = (unichar_t *) _("Scale X/Y the same");
++    label[k].text_is_1byte = true;
++    label[k].text_in_resource = true;
++    gcd[k].gd.label = &label[k];
++    gcd[k].gd.pos.x = 110; gcd[k].gd.pos.y = 17+5+6; 
++    gcd[k].gd.flags = gg_enabled|gg_visible;
++    if ( gridfit_x_sameas_y )
++	gcd[k].gd.flags |= gg_cb_on;
++    gcd[k].gd.cid = CID_SameAs;
++    gcd[k].gd.handle_controlevent = FtPpem_SameAsChanged;
++    gcd[k++].creator = GCheckBoxCreate;
++    varray[r][0] = &gcd[k-1]; varray[r][1] = GCD_HPad10;
++
++    label[k].text = (unichar_t *) _("_DPI:");
++    label[k].text_is_1byte = true;
++    label[k].text_in_resource = true;
++    gcd[k].gd.label = &label[k];
++    gcd[k].gd.pos.x = 110; gcd[k].gd.pos.y = 17+5+6; 
++    gcd[k].gd.flags = gg_enabled|gg_visible;
++    gcd[k++].creator = GLabelCreate;
++    harray1[0] = &gcd[k-1];
++
++    sprintf( buffer2, "%d", gridfit_dpi );
++    label[k].text = (unichar_t *) buffer2;
++    label[k].text_is_1byte = true;
++    gcd[k].gd.label = &label[k];
++    gcd[k].gd.pos.x = 140; gcd[k].gd.pos.y = 17+5;  gcd[k].gd.pos.width = 40;
++    gcd[k].gd.flags = gg_enabled|gg_visible;
++    gcd[k].gd.cid = CID_DPI;
++    gcd[k++].creator = GTextFieldCreate;
++    harray1[1] = &gcd[k-1]; harray1[2] = NULL;
++
++    boxes[2].gd.flags = gg_enabled|gg_visible;
++    boxes[2].gd.u.boxelements = harray1;
++    boxes[2].creator = GHBoxCreate;
++    varray[r][2] = &boxes[2]; varray[r++][3] = NULL;
++
++    label[k].text = (unichar_t *) _("_Pointsize Y:");
++    label[k].text_is_1byte = true;
++    label[k].text_in_resource = true;
++    gcd[k].gd.label = &label[k];
++    gcd[k].gd.pos.x = 5; gcd[k].gd.pos.y = 17+5+6; 
++    gcd[k].gd.flags = gg_enabled|gg_visible;
++    gcd[k++].creator = GLabelCreate;
++    harray2[0] = &gcd[k-1];
++
++    sprintf( buffer, "%g", gridfit_pointsizey );
++    label[k].text = (unichar_t *) buffer;
++    label[k].text_is_1byte = true;
++    gcd[k].gd.label = &label[k];
++    gcd[k].gd.pos.x = 57; gcd[k].gd.pos.y = 17+5;  gcd[k].gd.pos.width = 40;
++    gcd[k].gd.flags = gg_enabled|gg_visible;
++    gcd[k].gd.handle_controlevent = FtPpem_PtYChanged;
++    gcd[k].gd.cid = CID_PointSize;
++    gcd[k++].creator = GTextFieldCreate;
++    harray2[1] = &gcd[k-1]; harray2[2] = NULL;
++
++    boxes[3].gd.flags = gg_enabled|gg_visible;
++    boxes[3].gd.u.boxelements = harray2;
++    boxes[3].creator = GHBoxCreate;
++    varray[r][0] = &boxes[3]; varray[r][1] = GCD_HPad10;
++
++    label[k].text = (unichar_t *) _("_X:");
++    label[k].text_is_1byte = true;
++    label[k].text_in_resource = true;
++    gcd[k].gd.label = &label[k];
++    gcd[k].gd.pos.x = 5; gcd[k].gd.pos.y = 17+5+6; 
++    gcd[k].gd.flags = gg_enabled|gg_visible;
++    gcd[k++].creator = GLabelCreate;
++    harray3[0] = &gcd[k-1];
++
++    sprintf( buffer3, "%g", gridfit_x_sameas_y ? gridfit_pointsizey : gridfit_pointsizex);
++    label[k].text = (unichar_t *) buffer3;
++    label[k].text_is_1byte = true;
++    gcd[k].gd.label = &label[k];
++    gcd[k].gd.pos.x = 57; gcd[k].gd.pos.y = 17+5;  gcd[k].gd.pos.width = 40;
++    gcd[k].gd.flags = gg_enabled|gg_visible;
++    if ( gridfit_x_sameas_y )
++	gcd[k].gd.flags = gg_visible;
++    gcd[k].gd.cid = CID_PointSizeX;
++    gcd[k++].creator = GTextFieldCreate;
++    harray3[1] = &gcd[k-1]; harray3[2] = NULL;
++
++    boxes[4].gd.flags = gg_enabled|gg_visible;
++    boxes[4].gd.u.boxelements = harray3;
++    boxes[4].creator = GHBoxCreate;
++    varray[r][2] = &boxes[4]; varray[r++][3] = NULL;
++
++    label[k].text = (unichar_t *) _("_Mono");
++    label[k].text_is_1byte = true;
++    label[k].text_in_resource = true;
++    gcd[k].gd.label = &label[k];
++    gcd[k].gd.pos.x = 20; gcd[k].gd.pos.y = 14+31; 
++    gcd[k].gd.flags = gridfit_depth==1 ? (gg_enabled|gg_visible|gg_cb_on) : (gg_enabled|gg_visible);
++    gcd[k].gd.cid = CID_BW;
++    gcd[k++].creator = GRadioCreate;
++    varray[r][0] = &gcd[k-1]; varray[r][1] = GCD_HPad10;
++
++    label[k].text = (unichar_t *) _("_Anti-Aliased");
++    label[k].text_is_1byte = true;
++    label[k].text_in_resource = true;
++    gcd[k].gd.label = &label[k];
++    gcd[k].gd.pos.x = 80; gcd[k].gd.pos.y = gcd[9].gd.pos.y; 
++    gcd[k].gd.flags = gridfit_depth!=1 ? (gg_enabled|gg_visible|gg_cb_on) : (gg_enabled|gg_visible);
++    gcd[k++].creator = GRadioCreate;
++    varray[r][2] = &gcd[k-1]; varray[r++][3] = NULL;
++
++    gcd[k].gd.pos.x = 5; gcd[k].gd.pos.y = 17+31+16;
++    gcd[k].gd.pos.width = 190-10;
++    gcd[k].gd.flags = gg_enabled|gg_visible;
++    gcd[k++].creator = GLineCreate;
++    varray[r][0] = &gcd[k-1]; varray[r][1] = GCD_ColSpan; varray[r][2] = GCD_ColSpan; varray[r++][3] = NULL;
++
++    gcd[k].gd.pos.x = 20-3; gcd[k].gd.pos.y = 17+37+16;
++    gcd[k].gd.pos.width = -1; gcd[k].gd.pos.height = 0;
++    gcd[k].gd.flags = gg_visible | gg_enabled | gg_but_default;
++    label[k].text = (unichar_t *) _("_OK");
++    label[k].text_is_1byte = true;
++    label[k].text_in_resource = true;
++    gcd[k].gd.mnemonic = 'O';
++    gcd[k].gd.label = &label[k];
++    gcd[k].gd.handle_controlevent = FVFtPpem_OK;
++    gcd[k++].creator = GButtonCreate;
++    barray[0] = GCD_Glue; barray[1] = &gcd[k-1]; barray[2] = GCD_Glue;
++
++    gcd[k].gd.pos.x = -20; gcd[k].gd.pos.y = gcd[4].gd.pos.y+3;
++    gcd[k].gd.pos.width = -1; gcd[k].gd.pos.height = 0;
++    gcd[k].gd.flags = gg_visible | gg_enabled | gg_but_cancel;
++    label[k].text = (unichar_t *) _("_Cancel");
++    label[k].text_is_1byte = true;
++    label[k].text_in_resource = true;
++    gcd[k].gd.label = &label[k];
++    gcd[k].gd.mnemonic = 'C';
++    gcd[k].gd.handle_controlevent = FtPpem_Cancel;
++    gcd[k++].creator = GButtonCreate;
++    barray[3] = GCD_Glue; barray[4] = &gcd[k-1]; barray[5] = GCD_Glue; barray[6] = NULL;
++
++    boxes[5].gd.flags = gg_enabled|gg_visible;
++    boxes[5].gd.u.boxelements = barray;
++    boxes[5].creator = GHBoxCreate;
++    varray[r][0] = &boxes[5]; varray[r][1] = GCD_ColSpan; varray[r][2] = GCD_ColSpan; varray[r++][3] = NULL;
++    varray[r][0] = NULL;
++
++    boxes[0].gd.pos.x = boxes[0].gd.pos.y = 2;
++    boxes[0].gd.flags = gg_enabled|gg_visible;
++    boxes[0].gd.u.boxelements = varray[0];
++    boxes[0].creator = GHVGroupCreate;
++
++
+     GGadgetsCreate(gw,boxes);
+     GHVBoxFitWindow(boxes[0].ret);
+ 
+diff --git a/fontforgeexe/fontview.c b/fontforgeexe/fontview.c
+index 47515f840..c343ff432 100644
+--- a/fontforgeexe/fontview.c
++++ b/fontforgeexe/fontview.c
+@@ -1345,6 +1345,7 @@ static void FVMenuCondense(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *UNU
+ #define MID_AvailBitmaps	2210
+ #define MID_RegenBitmaps	2211
+ #define MID_Autotrace	2212
++#define MID_GridFit	114514
+ #define MID_Round	2213
+ #define MID_MergeFonts	2214
+ #define MID_InterpolateFonts	2215
+@@ -2732,6 +2733,14 @@ static void FVMenuAutotrace(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *e)
+ 	GDrawSetCursor(fv->v,ct);
+ }
+ 
++static void FVMenuGridFit(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *e) {
++    FontView *fv = (FontView *) GDrawGetUserData(gw);
++
++    if ( !hasFreeType() )
++	return;
++    FVFtPpemDlg(fv,false);
++}
++
+ static void FVMenuBuildAccent(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *UNUSED(e)) {
+     FVBuildAccent( (FontViewBase *) GDrawGetUserData(gw), true );
+ }
+@@ -4257,6 +4266,9 @@ static void ellistcheck(GWindow gw, struct gmenuitem *mi, GEvent *UNUSED(e)) {
+ 	    }
+ 	    mi->ti.disabled = !anytraceable;
+ 	  break;
++	  case MID_GridFit:
++	    mi->ti.disabled = !hasFreeType();
++	  break;
+ 	  case MID_MergeFonts:
+ 	    mi->ti.disabled = fv->b.sf->bitmaps!=NULL && fv->b.sf->onlybitmaps;
+ 	  break;
+@@ -4644,6 +4656,7 @@ static GMenuItem2 ellist[] = {
+     { { (unichar_t *) N_("Add E_xtrema"), (GImage *) "elementaddextrema.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'x' }, H_("Add Extrema|No Shortcut"), NULL, NULL, FVMenuAddExtrema, MID_AddExtrema },
+     { { (unichar_t *) N_("Roun_d"), (GImage *) "elementround.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'I' }, H_("Round|No Shortcut"), rndlist, NULL, NULL, MID_Round },
+     { { (unichar_t *) N_("Autot_race"), (GImage *) "elementautotrace.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'r' }, H_("Autotrace|No Shortcut"), NULL, NULL, FVMenuAutotrace, MID_Autotrace },
++    { { (unichar_t *) N_("Grid Fit"), (GImage *) "menuempty.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, '\0' }, H_("Grid Fit|No Shortcut"), NULL, NULL, FVMenuGridFit, MID_GridFit },
+     { { NULL, NULL, COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 1, 0, 0, 0, '\0' }, NULL, NULL, NULL, NULL, 0 }, /* line */
+     { { (unichar_t *) N_("_Correct Direction"), (GImage *) "elementcorrectdir.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'D' }, H_("Correct Direction|No Shortcut"), NULL, NULL, FVMenuCorrectDir, MID_Correct },
+     { { NULL, NULL, COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 1, 0, 0, 0, '\0' }, NULL, NULL, NULL, NULL, 0 }, /* line */
+-- 
+2.32.0.windows.2
+
