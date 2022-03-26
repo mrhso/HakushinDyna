@@ -1,6 +1,6 @@
-From c0a884cb1b3186ca630afbe5f0e993a3236ec7e7 Mon Sep 17 00:00:00 2001
+From 43eeee5ce21b3471a7405f0a6942b637e06178fd Mon Sep 17 00:00:00 2001
 From: mrhso <liu.songquan@live.cn>
-Date: Mon, 26 Jul 2021 15:27:43 +0800
+Date: Sat, 26 Mar 2022 17:59:13 +0800
 Subject: [PATCH] HakushinDyna
 
 ---
@@ -10,19 +10,19 @@ Subject: [PATCH] HakushinDyna
  3 files changed, 304 insertions(+)
 
 diff --git a/fontforge/views.h b/fontforge/views.h
-index fc7ef3e13..efe086554 100644
+index 8c8ee4490..424170c77 100644
 --- a/fontforge/views.h
 +++ b/fontforge/views.h
-@@ -476,6 +476,8 @@ typedef struct fontview {
+@@ -477,6 +477,8 @@ typedef struct fontview {
      struct qg_data *qg;
      GPid pid_webfontserver;
      bool script_unsaved; // Whether or not there's an unsaved script in script dialog
-+    int16 ft_dpi, ft_ppemy, ft_ppemx, ft_depth;
++    int16_t ft_dpi, ft_ppemy, ft_ppemx, ft_depth;
 +    real ft_pointsizey, ft_pointsizex;
  } FontView;
  
  typedef struct findsel {
-@@ -1163,6 +1165,7 @@ extern void CVGridFitChar(CharView *cv);
+@@ -1164,6 +1166,7 @@ extern void CVGridFitChar(CharView *cv);
   */
  extern void CVGridHandlePossibleFitChar(CharView *cv);
  extern void CVFtPpemDlg(CharView *cv,int debug);
@@ -31,18 +31,18 @@ index fc7ef3e13..efe086554 100644
  extern void SCReGridFit(SplineChar *sc,int layer);
  
 diff --git a/fontforgeexe/cvgridfit.c b/fontforgeexe/cvgridfit.c
-index 564c221e9..5ef84572d 100644
+index 564c221e9..100efbdb4 100644
 --- a/fontforgeexe/cvgridfit.c
 +++ b/fontforgeexe/cvgridfit.c
 @@ -88,6 +88,48 @@ return;
  	    _("The points have been changed. This may mean that the truetype instructions now refer to the wrong points and they may cause unexpected results."));
  }
  
-+void FVGridFitChar(FontViewBase *fv, real ft_pointsizey, real ft_pointsizex, int16 ft_dpi, int16 ft_depth) {
++void FVGridFitChar(FontViewBase *fv, real ft_pointsizey, real ft_pointsizex, int16_t ft_dpi, int16_t ft_depth) {
 +    int i,cnt,gid;
 +    void *single_glyph_context;
 +    SplineFont *sf;
-+    uint16 ft_gridfitwidth;
++    uint16_t ft_gridfitwidth;
 +
 +    for ( i=cnt=0; i<fv->map->enccount; ++i ) {
 +	if ( fv->selected[i] && (gid=fv->map->map[i])!=-1 &&
@@ -351,10 +351,10 @@ index 564c221e9..5ef84572d 100644
      GHVBoxFitWindow(boxes[0].ret);
  
 diff --git a/fontforgeexe/fontview.c b/fontforgeexe/fontview.c
-index 47515f840..c343ff432 100644
+index 9c7b69cc6..2103d3def 100644
 --- a/fontforgeexe/fontview.c
 +++ b/fontforgeexe/fontview.c
-@@ -1345,6 +1345,7 @@ static void FVMenuCondense(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *UNU
+@@ -1366,6 +1366,7 @@ static void FVMenuCondense(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *UNU
  #define MID_AvailBitmaps	2210
  #define MID_RegenBitmaps	2211
  #define MID_Autotrace	2212
@@ -362,7 +362,7 @@ index 47515f840..c343ff432 100644
  #define MID_Round	2213
  #define MID_MergeFonts	2214
  #define MID_InterpolateFonts	2215
-@@ -2732,6 +2733,14 @@ static void FVMenuAutotrace(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *e)
+@@ -2769,6 +2770,14 @@ static void FVMenuAutotrace(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *e)
  	GDrawSetCursor(fv->v,ct);
  }
  
@@ -377,7 +377,7 @@ index 47515f840..c343ff432 100644
  static void FVMenuBuildAccent(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *UNUSED(e)) {
      FVBuildAccent( (FontViewBase *) GDrawGetUserData(gw), true );
  }
-@@ -4257,6 +4266,9 @@ static void ellistcheck(GWindow gw, struct gmenuitem *mi, GEvent *UNUSED(e)) {
+@@ -4283,6 +4292,9 @@ static void ellistcheck(GWindow gw, struct gmenuitem *mi, GEvent *UNUSED(e)) {
  	    }
  	    mi->ti.disabled = !anytraceable;
  	  break;
@@ -387,8 +387,8 @@ index 47515f840..c343ff432 100644
  	  case MID_MergeFonts:
  	    mi->ti.disabled = fv->b.sf->bitmaps!=NULL && fv->b.sf->onlybitmaps;
  	  break;
-@@ -4644,6 +4656,7 @@ static GMenuItem2 ellist[] = {
-     { { (unichar_t *) N_("Add E_xtrema"), (GImage *) "elementaddextrema.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'x' }, H_("Add Extrema|No Shortcut"), NULL, NULL, FVMenuAddExtrema, MID_AddExtrema },
+@@ -4673,6 +4685,7 @@ static GMenuItem2 ellist[] = {
+     { { (unichar_t *) N_("Harmoni_ze"), (GImage *) "elementharmonize.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'z' }, H_("Harmonize|No Shortcut"), NULL, NULL, FVMenuHarmonize, MID_Harmonize },
      { { (unichar_t *) N_("Roun_d"), (GImage *) "elementround.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'I' }, H_("Round|No Shortcut"), rndlist, NULL, NULL, MID_Round },
      { { (unichar_t *) N_("Autot_race"), (GImage *) "elementautotrace.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'r' }, H_("Autotrace|No Shortcut"), NULL, NULL, FVMenuAutotrace, MID_Autotrace },
 +    { { (unichar_t *) N_("Grid Fit"), (GImage *) "menuempty.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, '\0' }, H_("Grid Fit|No Shortcut"), NULL, NULL, FVMenuGridFit, MID_GridFit },
@@ -396,5 +396,5 @@ index 47515f840..c343ff432 100644
      { { (unichar_t *) N_("_Correct Direction"), (GImage *) "elementcorrectdir.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'D' }, H_("Correct Direction|No Shortcut"), NULL, NULL, FVMenuCorrectDir, MID_Correct },
      { { NULL, NULL, COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 1, 0, 0, 0, '\0' }, NULL, NULL, NULL, NULL, 0 }, /* line */
 -- 
-2.32.0.windows.2
+2.30.2.windows.1
 
