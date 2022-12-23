@@ -1,6 +1,6 @@
-From 43eeee5ce21b3471a7405f0a6942b637e06178fd Mon Sep 17 00:00:00 2001
+From bf25bdd8647fd8afcf2293ee638eb34086aa69ea Mon Sep 17 00:00:00 2001
 From: mrhso <liu.songquan@live.cn>
-Date: Sat, 26 Mar 2022 17:59:13 +0800
+Date: Fri, 23 Dec 2022 16:01:42 +0800
 Subject: [PATCH] HakushinDyna
 
 ---
@@ -351,10 +351,10 @@ index 564c221e9..100efbdb4 100644
      GHVBoxFitWindow(boxes[0].ret);
  
 diff --git a/fontforgeexe/fontview.c b/fontforgeexe/fontview.c
-index 9c7b69cc6..2103d3def 100644
+index 1453a7b10..4741b77ff 100644
 --- a/fontforgeexe/fontview.c
 +++ b/fontforgeexe/fontview.c
-@@ -1366,6 +1366,7 @@ static void FVMenuCondense(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *UNU
+@@ -1541,6 +1541,7 @@ static void FVMenuCondense(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *UNU
  #define MID_AvailBitmaps	2210
  #define MID_RegenBitmaps	2211
  #define MID_Autotrace	2212
@@ -362,7 +362,7 @@ index 9c7b69cc6..2103d3def 100644
  #define MID_Round	2213
  #define MID_MergeFonts	2214
  #define MID_InterpolateFonts	2215
-@@ -2769,6 +2770,14 @@ static void FVMenuAutotrace(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *e)
+@@ -2944,6 +2945,14 @@ static void FVMenuAutotrace(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *e)
  	GDrawSetCursor(fv->v,ct);
  }
  
@@ -377,7 +377,7 @@ index 9c7b69cc6..2103d3def 100644
  static void FVMenuBuildAccent(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *UNUSED(e)) {
      FVBuildAccent( (FontViewBase *) GDrawGetUserData(gw), true );
  }
-@@ -4283,6 +4292,9 @@ static void ellistcheck(GWindow gw, struct gmenuitem *mi, GEvent *UNUSED(e)) {
+@@ -4458,6 +4467,9 @@ static void ellistcheck(GWindow gw, struct gmenuitem *mi, GEvent *UNUSED(e)) {
  	    }
  	    mi->ti.disabled = !anytraceable;
  	  break;
@@ -387,7 +387,7 @@ index 9c7b69cc6..2103d3def 100644
  	  case MID_MergeFonts:
  	    mi->ti.disabled = fv->b.sf->bitmaps!=NULL && fv->b.sf->onlybitmaps;
  	  break;
-@@ -4673,6 +4685,7 @@ static GMenuItem2 ellist[] = {
+@@ -4848,6 +4860,7 @@ static GMenuItem2 ellist[] = {
      { { (unichar_t *) N_("Harmoni_ze"), (GImage *) "elementharmonize.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'z' }, H_("Harmonize|No Shortcut"), NULL, NULL, FVMenuHarmonize, MID_Harmonize },
      { { (unichar_t *) N_("Roun_d"), (GImage *) "elementround.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'I' }, H_("Round|No Shortcut"), rndlist, NULL, NULL, MID_Round },
      { { (unichar_t *) N_("Autot_race"), (GImage *) "elementautotrace.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'r' }, H_("Autotrace|No Shortcut"), NULL, NULL, FVMenuAutotrace, MID_Autotrace },
@@ -396,5 +396,5 @@ index 9c7b69cc6..2103d3def 100644
      { { (unichar_t *) N_("_Correct Direction"), (GImage *) "elementcorrectdir.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'D' }, H_("Correct Direction|No Shortcut"), NULL, NULL, FVMenuCorrectDir, MID_Correct },
      { { NULL, NULL, COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 1, 0, 0, 0, '\0' }, NULL, NULL, NULL, NULL, 0 }, /* line */
 -- 
-2.30.2.windows.1
+2.38.1.windows.1
 
