@@ -1,6 +1,6 @@
-From bf25bdd8647fd8afcf2293ee638eb34086aa69ea Mon Sep 17 00:00:00 2001
+From 171b7abb5be161fa3c13bd20e829f5970a9db100 Mon Sep 17 00:00:00 2001
 From: mrhso <liu.songquan@live.cn>
-Date: Fri, 23 Dec 2022 16:01:42 +0800
+Date: Thu, 14 Aug 2025 19:13:15 +0800
 Subject: [PATCH] HakushinDyna
 
 ---
@@ -10,7 +10,7 @@ Subject: [PATCH] HakushinDyna
  3 files changed, 304 insertions(+)
 
 diff --git a/fontforge/views.h b/fontforge/views.h
-index 8c8ee4490..424170c77 100644
+index 3eb1357b9..a7ce85154 100644
 --- a/fontforge/views.h
 +++ b/fontforge/views.h
 @@ -477,6 +477,8 @@ typedef struct fontview {
@@ -22,7 +22,7 @@ index 8c8ee4490..424170c77 100644
  } FontView;
  
  typedef struct findsel {
-@@ -1164,6 +1166,7 @@ extern void CVGridFitChar(CharView *cv);
+@@ -1168,6 +1170,7 @@ extern void CVGridFitChar(CharView *cv);
   */
  extern void CVGridHandlePossibleFitChar(CharView *cv);
  extern void CVFtPpemDlg(CharView *cv,int debug);
@@ -31,7 +31,7 @@ index 8c8ee4490..424170c77 100644
  extern void SCReGridFit(SplineChar *sc,int layer);
  
 diff --git a/fontforgeexe/cvgridfit.c b/fontforgeexe/cvgridfit.c
-index 564c221e9..100efbdb4 100644
+index 1f9a96992..c07eba030 100644
 --- a/fontforgeexe/cvgridfit.c
 +++ b/fontforgeexe/cvgridfit.c
 @@ -88,6 +88,48 @@ return;
@@ -351,10 +351,10 @@ index 564c221e9..100efbdb4 100644
      GHVBoxFitWindow(boxes[0].ret);
  
 diff --git a/fontforgeexe/fontview.c b/fontforgeexe/fontview.c
-index 1453a7b10..4741b77ff 100644
+index adbb02f7d..416df052b 100644
 --- a/fontforgeexe/fontview.c
 +++ b/fontforgeexe/fontview.c
-@@ -1541,6 +1541,7 @@ static void FVMenuCondense(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *UNU
+@@ -1551,6 +1551,7 @@ static void FVMenuCondense(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *UNU
  #define MID_AvailBitmaps	2210
  #define MID_RegenBitmaps	2211
  #define MID_Autotrace	2212
@@ -362,7 +362,7 @@ index 1453a7b10..4741b77ff 100644
  #define MID_Round	2213
  #define MID_MergeFonts	2214
  #define MID_InterpolateFonts	2215
-@@ -2944,6 +2945,14 @@ static void FVMenuAutotrace(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *e)
+@@ -2954,6 +2955,14 @@ static void FVMenuAutotrace(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *e)
  	GDrawSetCursor(fv->v,ct);
  }
  
@@ -377,7 +377,7 @@ index 1453a7b10..4741b77ff 100644
  static void FVMenuBuildAccent(GWindow gw, struct gmenuitem *UNUSED(mi), GEvent *UNUSED(e)) {
      FVBuildAccent( (FontViewBase *) GDrawGetUserData(gw), true );
  }
-@@ -4458,6 +4467,9 @@ static void ellistcheck(GWindow gw, struct gmenuitem *mi, GEvent *UNUSED(e)) {
+@@ -4475,6 +4484,9 @@ static void ellistcheck(GWindow gw, struct gmenuitem *mi, GEvent *UNUSED(e)) {
  	    }
  	    mi->ti.disabled = !anytraceable;
  	  break;
@@ -387,7 +387,7 @@ index 1453a7b10..4741b77ff 100644
  	  case MID_MergeFonts:
  	    mi->ti.disabled = fv->b.sf->bitmaps!=NULL && fv->b.sf->onlybitmaps;
  	  break;
-@@ -4848,6 +4860,7 @@ static GMenuItem2 ellist[] = {
+@@ -4865,6 +4877,7 @@ static GMenuItem2 ellist[] = {
      { { (unichar_t *) N_("Harmoni_ze"), (GImage *) "elementharmonize.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'z' }, H_("Harmonize|No Shortcut"), NULL, NULL, FVMenuHarmonize, MID_Harmonize },
      { { (unichar_t *) N_("Roun_d"), (GImage *) "elementround.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'I' }, H_("Round|No Shortcut"), rndlist, NULL, NULL, MID_Round },
      { { (unichar_t *) N_("Autot_race"), (GImage *) "elementautotrace.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'r' }, H_("Autotrace|No Shortcut"), NULL, NULL, FVMenuAutotrace, MID_Autotrace },
@@ -396,5 +396,5 @@ index 1453a7b10..4741b77ff 100644
      { { (unichar_t *) N_("_Correct Direction"), (GImage *) "elementcorrectdir.png", COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 0, 1, 1, 0, 'D' }, H_("Correct Direction|No Shortcut"), NULL, NULL, FVMenuCorrectDir, MID_Correct },
      { { NULL, NULL, COLOR_DEFAULT, COLOR_DEFAULT, NULL, NULL, 0, 1, 0, 0, 0, 1, 0, 0, 0, '\0' }, NULL, NULL, NULL, NULL, 0 }, /* line */
 -- 
-2.38.1.windows.1
+2.42.0.windows.2
 
